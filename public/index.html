@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jarvis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0e0f12;
+      --panel: #15171c;
+      --line: #2a2d36;
+      --field: #1b1d23;
+      --text: #e8e8ea;
+      --muted: #9a9ba3;
+      --accent: #6366f1;
+      --accent-soft: #312e81;
+      --live: #22c55e;
+      --live-text: #86efac;
+      --live-bg: #123524;
+      --danger: #ef4444;
+      --danger-text: #fca5a5;
+      --danger-bg: #3b1414;
+      --font: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 400 15px/1.5 var(--font); background: var(--bg); color: var(--text); }
+
+    header {
+      max-width: 1180px; margin: 0 auto; padding: 22px 24px 0;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    }
+    h1 { font-size: 21px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .subtitle { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+    .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .keys-state {
+      font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+      background: var(--field); border: 1px solid var(--line); color: var(--muted); white-space: nowrap;
+    }
+    .keys-state.ok { color: var(--live-text); background: var(--live-bg); border-color: #1e5238; }
+    .keys-state.missing { color: var(--danger-text); background: var(--danger-bg); border-color: #5c2020; }
+    #meta { color: #6f7079; font-size: 11.5px; }
+
+    main {
+      max-width: 1180px; margin: 0 auto; padding: 20px 24px 40px;
+      display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 22px; align-items: start;
+    }
+    @media (max-width: 960px) { main { grid-template-columns: 1fr; } }
+    .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+    /* ---- status stage (no video — just a big orb + status text) ---- */
+    #stage { position: relative; background: #000; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); padding: 40px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; min-height: 260px; }
+    #orb {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #4f46e5, #1e1b4b 70%);
+      border: 1px solid #3730a3; transition: box-shadow 160ms ease, transform 160ms ease;
+    }
+    #orb.live { box-shadow: 0 0 0 8px rgba(34,197,94,.12), 0 0 40px rgba(34,197,94,.25); }
+    #orb.speaking { animation: pulse 900ms ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    #status {
+      padding: 6px 13px; border-radius: 999px; font-size: 13px; font-weight: 500;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); color: var(--text);
+    }
+    #status.live { background: rgba(18,53,36,.86); border-color: #1e5238; color: var(--live-text); }
+    #status.error { background: rgba(59,20,20,.9); border-color: #5c2020; color: var(--danger-text); }
+    #status.muted { color: var(--muted); }
+
+    button { font-family: var(--font); border: 0; border-radius: 10px; cursor: pointer; background: var(--accent); color: #fff; font-weight: 600; }
+    button:disabled { opacity: .38; cursor: default; }
+    .controls { display: flex; gap: 10px; }
+    #start { flex: 1; padding: 15px 20px; font-size: 16.5px; }
+    #stop { padding: 15px 20px; font-size: 15px; background: var(--danger); }
+    .hint { color: var(--muted); font-size: 12.5px; }
+
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 16px; }
+    .card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+    .num {
+      flex: 0 0 auto; width: 21px; height: 21px; border-radius: 6px; background: var(--accent-soft);
+      color: #c7d2fe; font-size: 12px; font-weight: 700; display: grid; place-items: center;
+    }
+    .card-head strong { font-size: 14.5px; font-weight: 600; }
+    .card-head .status-pill { margin-left: auto; font-size: 11.5px; padding: 3px 9px; border-radius: 999px; background: var(--field); border: 1px solid var(--line); color: var(--muted); }
+    .card-head .status-pill.ok { color: var(--live-text); background: var(--live-bg); border-color: #1e5238; }
+
+    .row { display: grid; grid-template-columns: 88px 1fr; align-items: center; gap: 10px; margin-top: 9px; font-size: 13px; color: var(--muted); }
+    .row:first-of-type { margin-top: 0; }
+    .row.with-btn { grid-template-columns: 88px 1fr auto; }
+    select, .row input {
+      width: 100%; min-width: 0; padding: 8px 10px; border-radius: 8px;
+      background: var(--field); color: var(--text); border: 1px solid var(--line); font: 400 13.5px var(--font);
+    }
+    .row input.key { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+    .row input.key.saved::placeholder { color: var(--live-text); font-family: var(--font); }
+    select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+    button.small { padding: 8px 11px; font-size: 13px; background: #374151; font-weight: 500; }
+    .keys-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+    .keys-msg { font-size: 12.5px; color: var(--muted); }
+    .keys-msg.error { color: var(--danger-text); }
+    .keys-msg.ok { color: var(--live-text); }
+    .card p.note { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
+    .card a { color: #a5b4fc; }
+
+    .level { height: 7px; background: var(--field); border-radius: 4px; margin-top: 12px; overflow: hidden; }
+    #levelBar { height: 100%; width: 0; background: var(--live); transition: width 60ms linear; }
+    .level-labels { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: #6f7079; }
+
+    #transcript { max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    #transcript:empty::before {
+      content: "Nothing yet. Press Start conversation and say hello.";
+      display: block; color: var(--muted); font-size: 13px; line-height: 1.55;
+    }
+    .line { display: flex; flex-direction: column; gap: 3px; max-width: 88%; }
+    .line.user { align-self: flex-end; align-items: flex-end; }
+    .line.assistant { align-self: flex-start; align-items: flex-start; }
+    .who { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+    .line.user .who { color: #a5b4fc; }
+    .line.assistant .who { color: var(--live-text); }
+    .text { display: inline-block; padding: 9px 13px; border-radius: 13px; font-size: 14px; line-height: 1.5; }
+    .line.user .text { background: var(--accent-soft); color: #e9eaff; border-bottom-right-radius: 5px; }
+    .line.assistant .text { background: var(--field); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
+
+    #reminderList { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    #reminderList:empty::before { content: "Nothing on the list."; color: var(--muted); font-size: 12.5px; }
+    .reminder { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--field); border: 1px solid var(--line); border-radius: 9px; font-size: 13px; }
+    .reminder .due { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Jarvis</h1>
+      <div class="subtitle">Deepgram voice · Claude, dry and armed with tools</div>
+    </div>
+    <div class="header-right">
+      <span id="keysState" class="keys-state">Checking…</span>
+      <span id="meta"></span>
+    </div>
+  </header>
+
+  <main>
+    <div class="col">
+      <div id="stage">
+        <div id="orb"></div>
+        <div id="status" class="status muted">Idle</div>
+      </div>
+      <div class="controls">
+        <button id="start">Start conversation</button>
+        <button id="stop" disabled>Stop</button>
+      </div>
+      <p class="hint">Wear headphones. Through open speakers Jarvis hears his own voice and starts talking to himself — which, frankly, he'd enjoy more than you would.</p>
+
+      <section class="card">
+        <div class="card-head"><strong>Reminders</strong><button id="refreshReminders" class="small" style="margin-left:auto">Refresh</button></div>
+        <div id="reminderList"></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card">
+        <div class="card-head"><span class="num">1</span><strong>API keys</strong></div>
+        <label class="row"><span>Deepgram</span><input id="deepgramKey" class="key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Deepgram API key"></label>
+        <label class="row"><span>Brave</span><input id="braveKey" class="key" type="password" autocomplete="off" spellcheck="false" placeholder="Optional — enables web search"></label>
+        <div class="keys-actions">
+          <button id="saveKeys" class="small">Save keys</button>
+          <span id="keysMsg" class="keys-msg"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><span class="num">2</span><strong>Voice</strong></div>
+        <div class="row with-btn">
+          <label for="voice">Voice</label>
+          <select id="voice"><option value="">Loading voices…</option></select>
+          <button id="preview" class="small" title="Hear a sample of this voice">▶</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><span class="num">3</span><strong>Google</strong><span id="googleState" class="status-pill">Not connected</span></div>
+        <label class="row"><span>Client ID</span><input id="googleClientId" class="key" type="password" autocomplete="off" spellcheck="false" placeholder="OAuth Client ID"></label>
+        <label class="row"><span>Secret</span><input id="googleClientSecret" class="key" type="password" autocomplete="off" spellcheck="false" placeholder="OAuth Client Secret"></label>
+        <div class="keys-actions">
+          <button id="saveGoogleKeys" class="small">Save</button>
+          <button id="connectGoogle" class="small">Connect Google</button>
+          <button id="disconnectGoogle" class="small">Disconnect</button>
+        </div>
+        <p class="note">Gives Jarvis read access to Gmail and read/write access to Calendar. Needs a Google Cloud OAuth client — see .env.example for the two-minute setup.</p>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><span class="num">4</span><strong>Microphone</strong></div>
+        <div class="row with-btn">
+          <label for="mic">Input</label>
+          <select id="mic"><option value="">Allow microphone access to list devices…</option></select>
+          <button id="micPerm" class="small">Allow mic</button>
+        </div>
+        <div class="level"><div id="levelBar"></div></div>
+        <div class="level-labels"><span>Quiet</span><span>Loud</span></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><strong>Transcript</strong></div>
+        <div id="transcript"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
