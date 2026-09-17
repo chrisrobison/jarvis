@@ -127,4 +127,4 @@ Nothing beyond v1 has been started yet. Roughly in order of what matters most:
 
 ## License
 
-`package.json` declares ISC, but no `LICENSE` file has been added to the repo yet.
+[MIT](LICENSE)
